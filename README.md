@@ -1,53 +1,67 @@
-# Accelerated Decay — a Horizon native mod (SDK format)
+# Accelerated Decay — a Horizon port
 
-A port of **Accelerated Decay 21.0.0** (nanite/AcceleratedDecay, original author ErrorMikey) to
-Horizon 26.3, written as one flat SDK package (mod API `0.2`).
+**Accelerated Decay** is a Minecraft mod. Speeds up the leaf decaying process in Minecraft. This repository is a **port of it to [Horizon](https://github.com/horizon-rust/horizon)**, the Rust engine for Minecraft Java 26.3. It carries the complete source of the port plus the content files it ships, and installs as a single `.hmod` package.
 
-One real second after a player fells a `#minecraft:logs` block, the leaves around it that are
-already ready to decay (`distance == 7`, not `persistent`) are removed in a single flood fill over
-the 26-neighbour cube, and a waterlogged leaf leaves `minecraft:water` behind. The game's own
-distance machinery still decides which leaves are ready; this mod only stops waiting for the random
-tick.
+Upstream: [nanite/AcceleratedDecay](https://github.com/nanite/AcceleratedDecay) — licence **GPL-3.0-only**.
 
-**Licence: GPL-3.0-only** — the jar's `META-INF/neoforge.mods.toml` declares `license = "GPL3"`, so
-the artefact is the authority over the repository's stale MIT text (see `LICENSE-NOTICE.md`).
-Local-only until the licence terms and the maintainer's approval allow publishing
-(`ARCHITECTURE.md` §8 of the campaign).
+| | |
+|---|---|
+| Upstream mod | Accelerated Decay ([source](https://github.com/nanite/AcceleratedDecay)) |
+| Ported to | Horizon 0b14f8a, Minecraft Java 26.3, mod API `0.2` |
+| Package | `accelerateddecay.hmod` (install it with the Horizon launcher) |
+| Licence | **GPL-3.0-only** — the upstream mod's licence; see [Licence and credit](#licence-and-credit) |
 
-## Layout
+## What this port implements
 
-```text
-accelerateddecay.hmod          # the delivered package (port root, never target/)
-  horizon-mod.toml             # the only manifest: id/version/api/side/capabilities + [native] pins
-  Cargo.toml                   # depends on horizon-mod-api from .horizon/sdk/ (fetched, never shipped)
-  src/lib.rs                   # the one #[mod_api::horizon_mod] impl Hooks (the glue)
-  src/runtime.rs               # the pure engine and its 15 tests — byte-identical to the 0.1.0 file
-  LICENSE, LICENSE-NOTICE.md   # the licence travels inside the package
-  uses.json                    # generated: the SDK surface the sources name
-tools/e2e.sh                   # the in-game scenario (needs a launcher-built game)
-notes.md                       # behaviour, class/tier, gaps, verification, the migration recipe
+- P3 logic tier (`logic` in ATM10 CSV; `ledger.csv` class `content`, tier
+- No data content needed (mod has no blocks/items of its own); since the SDK
+- No config file (original has none).
+- No energy/capability/network dependency.
+- `ctl wait N` is exact (a `wait 20` advanced the tick counter by 21), but a
+- The first attempt at a delay assertion (`wait 10` after all three breaks)
+- The first waterlogged attempt (second column at x=6) aborted with "the
+
+## Not yet ported
+
+- **Removal is not a full break.** Upstream fires a cancelable
+- **Fluid state beyond water.** Upstream writes
+- **Deliberate safety deviations** (not upstream behaviour): `SEARCH_RADIUS`
+- Only player-caused log removal is seen (`destroy_block`). Logs removed by
+- The search box (±24 blocks from the anchor) bounds every merge; giant modded
+- Tag membership comes from the merged server tags, so datapack/modded trees
+- No config (the original has none) and no energy/capability use.
+- **No in-game run at `0b14f8a`** (no launcher, no game build). This slice's honest gap: the
+
+## Installing
+
+1. Install the [Horizon launcher](https://github.com/horizon-rust/horizon/releases) (0.2.70 or newer).
+2. Add `accelerateddecay.hmod` to the instance's mods.
+3. The package is pinned to a specific Horizon build; the launcher checks that pin.
+
+## Licence and credit
+
+Accelerated Decay was created by its upstream authors; the code, models and assets in the original mod
+remain theirs and are used here under **GPL-3.0-only**. The Rust in this repository is a clean-room
+rewrite for Horizon, not a translation of the original source.
+
+- `LICENSE` — the upstream licence text.
+- `LICENSE-NOTICE.md` — what this port carries and where it came from.
+- The upstream project: https://github.com/nanite/AcceleratedDecay
+
+## Technical details
+
+```
+horizon-mod.toml   package manifest (id, version, api, [native] pin)
+Cargo.toml         the crate; depends on `horizon-mod-api` from the fetched SDK
+src/               lib.rs (the one `impl Hooks`), runtime.rs (pure logic + tests), glue
+assets/ data/      the content the package ships
+tools/             content generators and the e2e scenario
 ```
 
-## Build, test, check
+- Build: `cargo horizon-mod build` (packages; it does not compile against the game).
+- Test: `cargo test`, `cargo clippy --all-targets -- -D warnings`.
+- In-game: `ports/tools/launcher-game.sh run accelerateddecay` in the campaign tree, or install the
+  `.hmod` and play; the harness scenario is `tools/e2e.sh`.
 
-```sh
-# from the campaign root; the runner blocks until a slot is free and does not cd for you
-ports/tools/build-slot.sh run --job sdk-ad --port ports/accelerateddecay --step test \
-    -- bash -c 'cd ports/accelerateddecay && CARGO_INCREMENTAL=0 cargo test'
-ports/tools/build-slot.sh run --job sdk-ad --port ports/accelerateddecay --step lint \
-    -- bash -c 'cd ports/accelerateddecay && cargo fmt --check && cargo clippy --all-targets -- -D warnings'
-ports/tools/build-slot.sh run --job sdk-ad --port ports/accelerateddecay --step build \
-    -- bash -c 'cd ports/accelerateddecay && rm -f Cargo.lock && cargo horizon-mod build &&
-        cp target/horizon-mod/accelerateddecay.hmod .'
-ports/tools/build-slot.sh run --job sdk-ad --port ports/accelerateddecay --step check \
-    -- bash -c 'cd ports/accelerateddecay && cargo horizon-mod check accelerateddecay.hmod &&
-        cargo horizon-mod fits accelerateddecay.hmod --build nightly'
-```
-
-`cargo horizon-mod` fetches the pinned SDK into `.horizon/sdk/` (gitignored, never packed). `build`
-packs the `.hmod`; it does not compile against the game — that is
-`horizon-launcher native-build . --instance <instance> --trust-native-code`, which is what
-`tools/e2e.sh` needs (`GAME=<launcher-built horizon-client>`).
-
-There is no `Cargo.lock` in the package on purpose: the crate has no registry dependency of its
-own, and a lock would ship resolved versions the SDK was not built against.
+This repository is generated from the campaign's port at `ports/accelerateddecay/`; the port's own
+`notes.md` is the full record (decisions, traps, evidence).
