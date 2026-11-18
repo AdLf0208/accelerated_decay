@@ -1,0 +1,26 @@
+id = "accelerateddecay"
+name = "Accelerated Decay"
+version = "0.2.0"
+description = """A port of Accelerated Decay for Horizon: one real second after a player fells a log, the
+ready-to-decay leaves around it (distance 7, not persistent) are removed in one flood fill over the
+26-neighbour cube, and a waterlogged leaf leaves water behind. Horizon has no drop-loot call, so a
+removed leaf drops nothing; that gap is recorded in the port's notes."""
+authors = ["ErrorMikey (upstream)", "nanite (Accelerated Decay)", "AdLf0208"]
+# A native mod: Rust in src/, compiled by the launcher against the game build [native] pins.
+# The id is the resource namespace and the only identity: Cargo's package name and version are
+# not the mod's.
+api = "0.2"
+# "both" is the installation side, not the hook's: the behaviour is server-side, but an integrated
+# server belongs to the client installation, so a single-player world or a LAN host needs both.
+side = "both"
+# The one shared value every manifest carries ("May add blocks, items, mob effects and entity
+# types"). This mod registers nothing; the field is a schema requirement, not a claim.
+capabilities = ["registries"]
+license = "GPL-3.0-only"
+homepage = "https://github.com/nanite/AcceleratedDecay"
+issues = "https://github.com/ErrorMikey/AcceleratedDecay/issues"
+
+[native]
+game = "26.3"
+horizon = "0b14f8acfd97fa2c750e42795249dcc981178ca4"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"

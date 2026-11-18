@@ -1,0 +1,19 @@
+[package]
+# Port of Accelerated Decay 21.0.0 (nanite/AcceleratedDecay, original author
+# ErrorMikey). The jar's META-INF/neoforge.mods.toml declares GPL3, so the
+# artefact this rewrite is ported from is GPL-3.0-only; local-only until both
+# the licence and the maintainer's approval allow publishing (ARCHITECTURE.md §8).
+#
+# Cargo's name and version are not the mod's identity: horizon-mod.toml is.
+name = "accelerateddecay"
+version = "0.2.0"
+edition = "2024"
+license = "GPL-3.0-only"
+description = "Accelerated Decay for Horizon: the ready-to-decay leaves of a felled tree are removed at once"
+publish = false
+
+[dependencies]
+# The pinned SDK's API crate, fetched into .horizon/sdk/ by any `cargo horizon-mod` command (the
+# launcher builds against its own copy of the same build). Any other registry dependency must be
+# pinned with `horizon-launcher native-lock .` before building.
+horizon-mod-api = { path = ".horizon/sdk/api/crates/horizon-mod-api" }
